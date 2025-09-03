@@ -51,7 +51,7 @@ python main.py --mode train
 python main.py --mode predict
 
 # Custom texts
-python main.py --mode predict --texts "Hóa đơn cà phê 25000" "Mua sữa siêu thị"
+python main.py --mode predict --texts "Hóa đơn thanh toán tại cửa hàng cà phê Feel Coffee với giá 25000 VND" "Mua sữa tươi Vinamilk tại siêu thị VinMart với giá 35000 VND"
 
 # Use specific model
 python main.py --mode predict --model models/receipt_classifier_20231201_143022.pkl
@@ -113,58 +113,91 @@ class Config:
 
 📊 STEP 1: DATA LOADING
 --------------------------------------------------
-✅ Loaded 2035 samples
+✅ Loaded 2034 samples
 📊 Columns: ['id', 'description', 'Category_Detailed']
 📈 Label distribution:
-   Ăn uống ngoài hàng: 245
-   Siêu thị tổng hợp: 189
-   ...
+   Siêu thị tổng hợp: 551
+   Khác: 441
+   Ăn uống ngoài hàng: 290
+   Sữa & Đồ uống: 279
+   Thực phẩm tươi sống: 213
+   Đồ khô & nhu yếu phẩm: 136
+   Mua sắm gia đình: 95
+   Tài chính - Ngân hàng: 19
+   Điện / Nước / Internet: 6
+   Y tế / Thuốc men: 4
 
 🔬 STEP 2: FEATURE EXTRACTION
 --------------------------------------------------
 🚀 Extracting features...
    📝 Bag of Words...
-      Shape: (1628, 5000)
+      Shape: (1627, 5000)
    📊 TF-IDF...
-      Shape: (1628, 5000)  
+      Shape: (1627, 5000) 
    🤖 Sentence Embeddings...
-      Shape: (1628, 384)
+      Shape: (1627, 384)
 
 🧬 STEP 3: GA OPTIMIZATION
 --------------------------------------------------
 🧬 Running Genetic Algorithm optimization...
 🏃 Running GA: 30 individuals, 15 generations
-gen	nevals	avg    	min    	max    
-0  	30    	0.7234 	0.6123 	0.8456 
-1  	21    	0.7891 	0.6234 	0.8567 
-...
-🏆 Best individual: [1, 7, 'distance', 12, 'entropy', 0.845, 0.423, 0.612, 0.289]
-🎯 Best fitness: 0.8956
+gen     nevals  avg             min             max     
+0       30      0.732487        0.574663        0.851261
+1       22      0.798953        0.658879        0.883839
+2       24      0.822599        0.591876        0.883839
+3       21      0.850979        0.68346         0.887524
+4       21      0.876528        0.808853        0.887524
+5       24      0.882077        0.854948        0.887524
+6       21      0.883469        0.820526        0.887524
+7       18      0.859496        0.582666        0.887524
+8       22      0.87181         0.754163        0.887524
+9       22      0.85966         0.582666        0.887524
+10      26      0.85886         0.693895        0.887524
+11      18      0.861954        0.586949        0.887524
+12      25      0.870866        0.722171        0.887524
+13      26      0.881337        0.78795         0.887524
+14      18      0.881029        0.8402          0.887524
+15      29      0.870826        0.582666        0.887524
+🏆 Best individual: [0, 14, 'uniform', 20, 'gini', 1.809617648150661, 0.2560473715614762, 0.8577710563211314, 0.2245035040899067]
+🎯 Best fitness: 0.8875
 
 🏋️ STEP 4: TRAINING BEST MODEL
 --------------------------------------------------
 🎯 Best configuration:
-   Feature type: tfidf
-   KNN: k=7, weights=distance
-   DT: depth=12, criterion=entropy
-   NB: alpha=0.845
-   Voting weights: KNN=0.318, DT=0.460, NB=0.217
+   Feature type: bow
+   KNN: k=14, weights=uniform
+   DT: depth=20, criterion=gini
+   NB: alpha=1.810
+   Voting weights: KNN=0.191, DT=0.641, NB=0.1687
 
 📊 STEP 5: EVALUATION
 --------------------------------------------------
-🎯 Test Accuracy: 0.9012
+🎯 Test Accuracy: 0.9312
 
 📈 Classification Report:
-                    precision    recall  f1-score   support
-Ăn uống ngoài hàng      0.91      0.89      0.90        49
-Siêu thị tổng hợp       0.88      0.92      0.90        38
-...
+                       precision    recall  f1-score   support
+
+                  Khác       0.91      0.99      0.95        88
+      Mua sắm gia đình       0.95      1.00      0.97        19
+     Siêu thị tổng hợp       0.94      0.97      0.96       110
+         Sữa & Đồ uống       0.96      0.98      0.97        56
+   Thực phẩm tươi sống       0.86      0.70      0.77        43
+ Tài chính - Ngân hàng       1.00      0.75      0.86         4
+      Y tế / Thuốc men       1.00      1.00      1.00         1
+    Ăn uống ngoài hàng       0.98      0.93      0.96        58
+Điện / Nước / Internet       0.00      0.00      0.00         1
+ Đồ khô & nhu yếu phẩm       0.88      0.85      0.87        27
+
+              accuracy                           0.93       407
+             macro avg       0.85      0.82      0.83       407
+          weighted avg       0.93      0.93      0.93       407
+
 
 💾 STEP 6: SAVING RESULTS
 --------------------------------------------------
-💾 Model saved: models/receipt_classifier_20231201_143022.pkl
-📊 Results saved: outputs/results_20231201_143022.pkl
-📈 GA evolution plot saved: outputs/ga_evolution_20231201_143022.png
+💾 Model saved: models/receipt_classifier_20250903_162237.pkl
+📊 Results saved: outputs/results_20250903_162237.pkl
+📈 GA evolution plot saved: outputs/ga_evolution_20250903_162237.png
 
 ======================================================================
 ✅ PIPELINE COMPLETED SUCCESSFULLY!
@@ -178,20 +211,20 @@ Siêu thị tổng hợp       0.88      0.92      0.90        38
 📝 Sample 1:
    Text: Hóa đơn thanh toán tại cửa hàng cà phê Feel Coffee với giá 25000 VND
    ➡️  Predicted: Ăn uống ngoài hàng
-   🎯 Confidence: 0.892
+   🎯 Confidence: 0.850
    📊 Top 3 predictions:
-      1. Ăn uống ngoài hàng: 0.892
-      2. Siêu thị tổng hợp: 0.074
-      3. Sữa & Đồ uống: 0.034
+      1. Ăn uống ngoài hàng: 0.850
+      2. Siêu thị tổng hợp: 0.096
+      3. Sữa & Đồ uống: 0.027
 
 📝 Sample 2:
    Text: Mua sữa tươi Vinamilk tại siêu thị VinMart với giá 35000 VND
    ➡️  Predicted: Sữa & Đồ uống
-   🎯 Confidence: 0.934
+   🎯 Confidence: 0.781
    📊 Top 3 predictions:
-      1. Sữa & Đồ uống: 0.934
-      2. Siêu thị tổng hợp: 0.051
-      3. Ăn uống ngoài hàng: 0.015
+      1. Sữa & Đồ uống: 0.781
+      2. Siêu thị tổng hợp: 0.096
+      3. Ăn uống ngoài hàng: 0.055
 ```
 
 ## 🔧 Advanced Usage

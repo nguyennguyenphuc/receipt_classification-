@@ -288,8 +288,3 @@ Look for these in the output:
 - ✅ **GA Evolution**: Fitness should improve over generations
 - ✅ **Final Accuracy**: Should be > 0.85 for good datasets
 - ✅ **Model Saving**: Files saved in models/ and outputs/ directories
-
-Happy classifying! 🚀
-
----
-*This project implements a GA-optimized voting ensemble for Vietnamese receipt classification, using features extracted exactly like the original bill_classify code.*

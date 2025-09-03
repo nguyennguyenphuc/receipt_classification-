@@ -1,72 +1,92 @@
+#!/usr/bin/env python3
+"""
+Vietnamese Receipt Classification with GA-Optimized Voting Ensemble
+Main entry point for training and inference
+"""
+
+from src.utils import load_model_for_prediction, predict_samples, print_prediction_results
+from src.trainer import ReceiptClassificationTrainer
+from config import Config
 import os
 import sys
-from config import Config
-from src.trainer import Trainer
-from src.utils import predict_category
+import argparse
+
+# Add paths for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_dir = os.path.join(current_dir, 'src')
+sys.path.insert(0, current_dir)
+sys.path.insert(0, src_dir)
+
+
+def train_model():
+    """Train the classification model"""
+    print("🚀 Starting Receipt Classification Training...")
+
+    trainer = ReceiptClassificationTrainer(Config)
+    best_model, best_feature_type, results = trainer.run_full_pipeline()
+
+    print("✅ Training completed!")
+    return best_model, best_feature_type, results
+
+
+def predict_mode(texts, model_path=None):
+    """Prediction mode"""
+    print("🔮 Starting prediction mode...")
+
+    if model_path:
+        model, feature_type, vectorizers, label_encoder = load_model_for_prediction(
+            model_path)
+    else:
+        # Use latest model
+        model_dir = os.path.join(current_dir, "models")
+        if not os.path.exists(model_dir) or not os.listdir(model_dir):
+            print("❌ No trained model found. Please train first!")
+            return
+
+        # Get latest model
+        model_files = [f for f in os.listdir(model_dir) if f.endswith('.pkl')]
+        if not model_files:
+            print("❌ No .pkl model files found!")
+            return
+
+        latest_model = max([os.path.join(model_dir, f) for f in model_files],
+                           key=os.path.getmtime)
+        model, feature_type, vectorizers, label_encoder = load_model_for_prediction(
+            latest_model)
+
+    predictions, probabilities = predict_samples(
+        texts, model, feature_type, vectorizers, label_encoder)
+
+    print_prediction_results(texts, predictions, probabilities, label_encoder)
 
 
 def main():
-    """Main function"""
-    print("🏪 Vietnamese Receipt Classification System")
-    print("📁 Dataset: viet_receipt_categorized_label.xlsx")
-    print("🔧 Simple preprocessing + BoW/TF-IDF/Embeddings + GA-Voting")
-    print("=" * 60)
+    parser = argparse.ArgumentParser(
+        description="Vietnamese Receipt Classification")
+    parser.add_argument("--mode", choices=["train", "predict"], default="train",
+                        help="Mode: train or predict")
+    parser.add_argument("--texts", nargs="+",
+                        help="Texts to predict (for predict mode)")
+    parser.add_argument(
+        "--model", help="Path to saved model (for predict mode)")
 
-    # Initialize configuration
-    config = Config()
+    args = parser.parse_args()
 
-    # Check if dataset exists
-    if not os.path.exists(config.EXCEL_FILE_PATH):
-        print(f"❌ Dataset not found: {config.EXCEL_FILE_PATH}")
-        print("Please ensure the Excel file is in the project root directory.")
-        return
+    if args.mode == "train":
+        train_model()
+    elif args.mode == "predict":
+        if not args.texts:
+            # Default test samples
+            sample_texts = [
+                "Hóa đơn thanh toán tại cửa hàng cà phê Feel Coffee với giá 25000 VND",
+                "Mua sữa tươi Vinamilk tại siêu thị VinMart với giá 35000 VND",
+                "Thanh toán tiền điện hàng tháng EVN 150000 VND",
+                "Ăn phở bò tại quán phở Hà Nội giá 45000 VND"
+            ]
+        else:
+            sample_texts = args.texts
 
-    try:
-        # Run training pipeline
-        print("🚀 Starting training pipeline...")
-        trainer = Trainer(config)
-        results = trainer.run_training()
-
-        print(f"\n🎉 Training completed successfully!")
-        print(f"💾 Model saved to: {config.MODEL_SAVE_PATH}")
-        print(f"📊 Plots saved to: {config.PLOTS_DIR}/")
-
-        # Demo predictions
-        demo_predictions(config.MODEL_SAVE_PATH)
-
-    except Exception as e:
-        print(f"❌ Training failed: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
-
-def demo_predictions(model_path: str):
-    """Run demo predictions"""
-    print(f"\n🔮 Demo Predictions:")
-
-    demo_texts = [
-        "Hoá đơn thanh toán tại Feel Coffee với Yogurt Very Berry giá 22.000 VND",
-        "Hoá đơn VinCommerce sữa Vinamilk TTi giá 33.100 đồng",
-        "Thanh toán VinID Pay tổng tiền 21.664.448 đồng mua sắm gia đình",
-        "Hóa đơn thuốc paracetamol bệnh viện giá 15.000",
-        "Hoá đơn siêu thị CP Giỏ bb 500g giá 111.200"
-    ]
-
-    for i, text in enumerate(demo_texts, 1):
-        try:
-            result = predict_category(text, model_path)
-            print(f"\n   {i}. Text: {text[:50]}...")
-            print(f"      → Category: {result['predicted_category']}")
-            print(f"      → Confidence: {result['confidence']:.3f}")
-
-            # Show top 3 if confidence is not very high
-            if result['confidence'] < 0.8:
-                print(f"      → Top 3:")
-                for j, (cat, prob) in enumerate(result['top_3_predictions'][:3]):
-                    print(f"         {j+1}. {cat}: {prob:.3f}")
-
-        except Exception as e:
-            print(f"      → Error: {e}")
+        predict_mode(sample_texts, args.model)
 
 
 if __name__ == "__main__":

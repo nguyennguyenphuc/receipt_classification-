@@ -1,117 +1,94 @@
+"""Data loading and preprocessing utilities"""
+
+import os
+import sys
 import pandas as pd
 import numpy as np
 import re
-from typing import Dict, List, Tuple
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+from typing import Tuple, List
+
+# Add paths for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
+sys.path.insert(0, os.path.dirname(current_dir))
 
 
 class DataLoader:
-    """Load and preprocess receipt data"""
-
     def __init__(self, config):
         self.config = config
+        self.label_encoder = LabelEncoder()
+        self.df = None
 
-    def load_data(self) -> Dict:
+    def load_data(self) -> pd.DataFrame:
         """Load data from Excel file"""
-        print("📂 Loading Vietnamese receipt dataset...")
+        print("🔄 Loading data from Excel...")
 
-        # Load Excel
-        df = pd.read_excel(self.config.EXCEL_FILE_PATH)
-        print(f"✅ Loaded {len(df)} samples")
+        try:
+            self.df = pd.read_excel(self.config.DATA_FILE)
+            print(f"✅ Loaded {len(self.df)} samples")
+            print(f"📊 Columns: {self.df.columns.tolist()}")
 
-        # Show distribution
-        print(f"\n📊 Category distribution:")
-        category_counts = df[self.config.TARGET_COLUMN].value_counts()
-        for category, count in category_counts.items():
-            print(f"   {category}: {count}")
+            # Check for missing values
+            missing_count = self.df.isnull().sum().sum()
+            if missing_count > 0:
+                print(f"⚠️  Found {missing_count} missing values, removing...")
+                self.df = self.df.dropna()
+                print(f"✅ Clean dataset: {len(self.df)} samples")
 
-        # Clean data
-        df_clean = self._clean_data(df)
+            # Display label distribution
+            print(f"\n📈 Label distribution:")
+            label_counts = self.df[self.config.LABEL_COLUMN].value_counts()
+            for label, count in label_counts.head(10).items():
+                print(f"   {label}: {count}")
 
-        # Create train-test split
-        return self._create_split(df_clean)
+            if len(label_counts) > 10:
+                print(f"   ... and {len(label_counts) - 10} more classes")
 
-    def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Clean and filter data"""
-        # Remove missing values
-        df_clean = df.dropna(
-            subset=[self.config.TEXT_COLUMN, self.config.TARGET_COLUMN])
+            return self.df
 
-        # Filter categories with enough samples
-        category_counts = df_clean[self.config.TARGET_COLUMN].value_counts()
-        valid_categories = category_counts[category_counts >=
-                                           self.config.MIN_SAMPLES_PER_CLASS].index
-        df_filtered = df_clean[df_clean[self.config.TARGET_COLUMN].isin(
-            valid_categories)]
+        except Exception as e:
+            print(f"❌ Error loading data: {e}")
+            raise
 
-        print(
-            f"\nAfter filtering (min {self.config.MIN_SAMPLES_PER_CLASS} samples per class):")
-        print(f"   Samples: {len(df_filtered)}")
-        print(f"   Categories: {len(valid_categories)}")
-
-        # Preprocess text
-        df_filtered = df_filtered.copy()
-        df_filtered['processed_text'] = df_filtered[self.config.TEXT_COLUMN].apply(
-            self._preprocess_text)
-
-        return df_filtered
-
-    def _preprocess_text(self, text: str) -> str:
-        """Simple text preprocessing"""
-        if pd.isna(text) or not text:
+    def preprocess_text(self, text: str) -> str:
+        """Basic text preprocessing"""
+        if pd.isna(text):
             return ""
 
-        text = str(text)
+        text = str(text).lower()
 
-        # Convert to lowercase
-        text = text.lower()
+        # Remove special characters, keep letters, numbers, and spaces
+        text = re.sub(r'[^\w\s]', ' ', text)
 
         # Remove extra whitespace
         text = re.sub(r'\s+', ' ', text).strip()
 
-        # Remove special characters (keep Vietnamese chars)
-        text = re.sub(
-            r'[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', ' ', text)
-
-        # Clean up spaces
-        text = re.sub(r'\s+', ' ', text).strip()
-
         return text
 
-    def _create_split(self, df: pd.DataFrame) -> Dict:
-        """Create train-test split with label mapping"""
-        # Create label mappings
-        unique_labels = sorted(df[self.config.TARGET_COLUMN].unique())
-        label_to_id = {label: i for i, label in enumerate(unique_labels)}
-        id_to_label = {i: label for i, label in enumerate(unique_labels)}
+    def prepare_data(self) -> Tuple[List[str], np.ndarray]:
+        """Prepare data for training"""
+        print("🔧 Preprocessing data...")
 
-        print(f"\n🏷️ Label mappings:")
-        for i, label in enumerate(unique_labels):
-            count = len(df[df[self.config.TARGET_COLUMN] == label])
-            print(f"   {i}: {label} ({count} samples)")
+        # Preprocess text
+        self.df['processed_text'] = self.df[self.config.TEXT_COLUMN].apply(
+            self.preprocess_text)
 
-        # Prepare features and targets
-        X = df['processed_text'].tolist()
-        y = [label_to_id[label] for label in df[self.config.TARGET_COLUMN]]
+        # Encode labels
+        y = self.label_encoder.fit_transform(self.df[self.config.LABEL_COLUMN])
+        X = self.df['processed_text'].tolist()
 
-        # Train-test split
-        X_train, X_test, y_train, y_test = train_test_split(
+        print(f"🏷️  Number of classes: {len(self.label_encoder.classes_)}")
+        print(f"📝 Classes: {list(self.label_encoder.classes_)}")
+
+        return X, y
+
+    def split_data(self, X: List[str], y: np.ndarray) -> Tuple:
+        """Split data into train and test sets"""
+        return train_test_split(
             X, y,
             test_size=self.config.TEST_SIZE,
             random_state=self.config.RANDOM_STATE,
             stratify=y
         )
-
-        print(f"\n📊 Dataset split:")
-        print(f"   Training: {len(X_train)} samples")
-        print(f"   Testing: {len(X_test)} samples")
-
-        return {
-            'X_train': X_train,
-            'X_test': X_test,
-            'y_train': y_train,
-            'y_test': y_test,
-            'label_to_id': label_to_id,
-            'id_to_label': id_to_label,
-            'unique_labels': unique_labels
-        }

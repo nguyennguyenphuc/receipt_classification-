@@ -1,28 +1,44 @@
+"""Configuration settings for Receipt Classification"""
+
+import os
+import sys
+
+# Add paths for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
+
+
 class Config:
-    """Configuration settings"""
-
-    # Dataset
-    EXCEL_FILE_PATH = "data/viet_receipt_categorized_label.xlsx"
+    # Data settings
+    DATA_FILE = "data/viet_receipt_categorized_label.xlsx"
     TEXT_COLUMN = "description"
-    TARGET_COLUMN = "Category_Detailed"
+    LABEL_COLUMN = "Category_Detailed"
 
-    # Data processing
-    TEST_SIZE = 0.2
-    RANDOM_STATE = 42
-    MIN_SAMPLES_PER_CLASS = 5
-
-    # Feature extraction
+    # Feature extraction settings
     MAX_FEATURES = 5000
     NGRAM_RANGE = (1, 2)
+    MIN_DF = 2
+    MAX_DF = 0.8
 
-    # GA optimization
-    POPULATION_SIZE = 20
-    GENERATIONS = 25
-    MUTATION_PROB = 0.1
-    CROSSOVER_PROB = 0.8
-    CV_FOLDS = 5
+    # Model settings
+    RANDOM_STATE = 42
+    TEST_SIZE = 0.2
+    CV_FOLDS = 3
+
+    # GA settings
+    POPULATION_SIZE = 30
+    GENERATIONS = 15
+    CROSSOVER_PROB = 0.7
+    MUTATION_PROB = 0.3
+    TOURNAMENT_SIZE = 3
+    ELITISM_SIZE = 1
+
+    # Embedding model
+    EMBEDDING_MODEL = 'all-MiniLM-L6-v2'
 
     # Output paths
-    MODEL_SAVE_PATH = "models/receipt_classifier.pkl"
-    PLOTS_DIR = "outputs/plots"
-    REPORTS_DIR = "outputs/reports"
+    MODELS_DIR = "models"
+    OUTPUTS_DIR = "outputs"
+
+    # Logging
+    VERBOSE = True
